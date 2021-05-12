@@ -27,6 +27,8 @@ import qualified Numeric as N
 -- >>> import Course.Core(even, id, const)
 -- >>> import qualified Prelude as P(fmap, foldr)
 -- >>> instance Arbitrary a => Arbitrary (List a) where arbitrary = P.fmap ((P.foldr (:.) Nil) :: ([a] -> List a)) arbitrary
+-- Could not find module ‘Test.QuickCheck’
+-- Use -v (or `:set -v` in ghci) to see a list of the files searched for.
 
 -- BEGIN Helper functions and data types
 
@@ -63,7 +65,7 @@ foldLeft f b (h :. t) = let b' = f b h in b' `seq` foldLeft f b' t
 -- | Returns the head of the list or the given default.
 --
 -- >>> headOr 3 (1 :. 2 :. Nil)
--- 1
+-- 1:r
 --
 -- >>> headOr 3 Nil
 -- 3
@@ -75,8 +77,8 @@ headOr ::
   a
   -> List a
   -> a
-headOr =
-  error "todo: Course.List#headOr"
+headOr d Nil = d
+headOr _ (h :. _) = h
 
 -- | The product of the elements of a list.
 --
@@ -91,8 +93,8 @@ headOr =
 product ::
   List Int
   -> Int
-product =
-  error "todo: Course.List#product"
+product = foldLeft (*) 1
+
 
 -- | Sum the elements of the list.
 --
@@ -106,8 +108,7 @@ product =
 sum ::
   List Int
   -> Int
-sum =
-  error "todo: Course.List#sum"
+sum = foldLeft (+) 0
 
 -- | Return the length of the list.
 --
@@ -118,59 +119,79 @@ sum =
 length ::
   List a
   -> Int
-length =
-  error "todo: Course.List#length"
+length = foldLeft (\c _ -> c + 1) 0
+
 
 -- | Map the given function on each element of the list.
 --
 -- >>> map (+10) (1 :. 2 :. 3 :. Nil)
--- [11,12,13]
+-- WAS WAS WAS WAS [11,12,13]
+-- WAS WAS WAS NOW [11,12,13]
+-- WAS WAS NOW [11,12,13]
+-- WAS NOW [11,12,13]
+-- NOW [11,12,13]
 --
 -- prop> \x -> headOr x (map (+1) infinity) == 1
+-- WAS WAS WAS Add QuickCheck to your cabal dependencies to run this test.
+-- WAS WAS NOW Add QuickCheck to your cabal dependencies to run this test.
+-- WAS NOW Add QuickCheck to your cabal dependencies to run this test.
+-- NOW Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> map id x == x
+-- WAS WAS WAS Add QuickCheck to your cabal dependencies to run this test.
+-- WAS WAS NOW Add QuickCheck to your cabal dependencies to run this test.
+-- WAS NOW Add QuickCheck to your cabal dependencies to run this test.
+-- NOW Add QuickCheck to your cabal dependencies to run this test.
 map ::
   (a -> b)
   -> List a
   -> List b
-map =
-  error "todo: Course.List#map"
+--map f ls = foldRight (\h t -> f h :. t) Nil ls 
+map f = foldRight ((:.) . f) Nil
 
 -- | Return elements satisfying the given predicate.
 --
 -- >>> filter even (1 :. 2 :. 3 :. 4 :. 5 :. Nil)
--- [2,4]
+-- WAS [2,4]
+-- NOW [2,4]
 --
 -- prop> \x -> headOr x (filter (const True) infinity) == 0
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> filter (const True) x == x
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> filter (const False) x == Nil
+-- Add QuickCheck to your cabal dependencies to run this test.
 filter ::
   (a -> Bool)
   -> List a
   -> List a
-filter =
-  error "todo: Course.List#filter"
+filter f = foldRight (\h t -> if f h then h :.t else t) Nil
 
 -- | Append two lists to a new list.
 --
 -- >>> (1 :. 2 :. 3 :. Nil) ++ (4 :. 5 :. 6 :. Nil)
--- [1,2,3,4,5,6]
+-- WAS [1,2,3,4,5,6]
+-- NOW [1,2,3,4,5,6]
 --
 -- prop> \x -> headOr x (Nil ++ infinity) == 0
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> headOr x (y ++ infinity) == headOr 0 y
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> (x ++ y) ++ z == x ++ (y ++ z)
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
+
 -- prop> \x -> x ++ Nil == x
+-- Add QuickCheck to your cabal dependencies to run this test.
 (++) ::
   List a
   -> List a
   -> List a
-(++) =
-  error "todo: Course.List#(++)"
+(++) ls1 ls2 = foldRight (:.) ls2 ls1
 
 infixr 5 ++
 
@@ -187,35 +208,39 @@ infixr 5 ++
 flatten ::
   List (List a)
   -> List a
-flatten =
-  error "todo: Course.List#flatten"
+flatten = foldRight (++) Nil
 
 -- | Map a function then flatten to a list.
 --
 -- >>> flatMap (\x -> x :. x + 1 :. x + 2 :. Nil) (1 :. 2 :. 3 :. Nil)
--- [1,2,3,2,3,4,3,4,5]
+-- WAS [1,2,3,2,3,4,3,4,5]
+-- NOW [1,2,3,2,3,4,3,4,5]
 --
 -- prop> \x -> headOr x (flatMap id (infinity :. y :. Nil)) == 0
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> headOr x (flatMap id (y :. infinity :. Nil)) == headOr 0 y
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> flatMap id (x :: List (List Int)) == flatten x
+-- Add QuickCheck to your cabal dependencies to run this test.
 flatMap ::
   (a -> List b)
   -> List a
   -> List b
-flatMap =
-  error "todo: Course.List#flatMap"
+  -- List (a -> List b) = List (List b)
+-- flatMap f = flatten . map f
+flatMap f ls = flatten (map f ls)
 
 -- | Flatten a list of lists to a list (again).
 -- HOWEVER, this time use the /flatMap/ function that you just wrote.
 --
 -- prop> \x -> let types = x :: List (List Int) in flatten x == flattenAgain x
+
 flattenAgain ::
   List (List a)
   -> List a
-flattenAgain =
-  error "todo: Course.List#flattenAgain"
+flattenAgain = flatMap id
 
 -- | Convert a list of optional values to an optional list of values.
 --
@@ -229,21 +254,39 @@ flattenAgain =
 -- when the list contains one or more `Empty` values.
 --
 -- >>> seqOptional (Full 1 :. Full 10 :. Nil)
--- Full [1,10]
+-- WAS Full [1,10]
+-- NOW Full [1,10]
 --
 -- >>> seqOptional Nil
--- Full []
+-- WAS Full []
+-- NOW Ambiguous type variable ‘a0’ arising from a use of ‘evalPrint’
+-- NOW prevents the constraint ‘(Show a0)’ from being solved.
+-- NOW Probable fix: use a type annotation to specify what ‘a0’ should be.
+-- NOW These potential instances exist:
+-- NOW   instance Show a => Show (ZipList a)
+-- NOW     -- Defined in ‘Control.Applicative’
+-- NOW   instance Show NestedAtomically
+-- NOW     -- Defined in ‘Control.Exception.Base’
+-- NOW   instance Show NoMethodError -- Defined in ‘Control.Exception.Base’
+-- NOW   ...plus 221 others
+-- NOW   (use -fprint-potential-instances to see them all)
 --
 -- >>> seqOptional (Full 1 :. Full 10 :. Empty :. Nil)
--- Empty
+-- WAS Empty
+-- NOW Empty
 --
 -- >>> seqOptional (Empty :. map Full infinity)
--- Empty
+-- WAS Empty
+-- NOW ProgressCancelledException
 seqOptional ::
   List (Optional a)
   -> Optional (List a)
-seqOptional =
-  error "todo: Course.List#seqOptional"
+
+  --- Optional (List a) = 
+ -- mapOptional :: (a -> b) -> Optional a  -> Optional b
+ -- mapOptional :: (List a -> List a) - Optional (List a) -> Optional (List a)
+--seqOptional = foldRight (\oa oas -> bindOptional (\as -> mapOptional (\a -> a :. as ) oa ) oas  ) (Full Nil)
+seqOptional = foldRight (\oa oas -> bindOptional (\a -> mapOptional (\as -> a :. as ) oas ) oa  ) (Full Nil)
 
 -- | Find the first element in the list matching the predicate.
 --
