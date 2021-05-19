@@ -113,13 +113,16 @@ sum = foldLeft (+) 0
 -- | Return the length of the list.
 --
 -- >>> length (1 :. 2 :. 3 :. Nil)
--- 3
+-- WAS 3
+-- NOW 3
 --
 -- prop> \x -> sum (map (const 1) x) == length x
+-- Add QuickCheck to your cabal dependencies to run this test.
 length ::
   List a
   -> Int
 length = foldLeft (\c _ -> c + 1) 0
+--length ls = foldRight (\_ c -> c + 1) 0 ls
 
 
 -- | Map the given function on each element of the list.
@@ -291,61 +294,98 @@ seqOptional = foldRight (\oa oas -> bindOptional (\a -> mapOptional (\as -> a :.
 -- | Find the first element in the list matching the predicate.
 --
 -- >>> find even (1 :. 3 :. 5 :. Nil)
--- Empty
+-- WAS WAS Empty
+-- WAS NOW Empty
+-- NOW Empty
 --
 -- >>> find even Nil
--- Empty
+-- WAS WAS Empty
+-- WAS NOW Empty
+-- NOW Empty
 --
 -- >>> find even (1 :. 2 :. 3 :. 5 :. Nil)
--- Full 2
+-- WAS WAS Full 2
+-- WAS NOW Empty
+-- NOW Full 2
 --
 -- >>> find even (1 :. 2 :. 3 :. 4 :. 5 :. Nil)
--- Full 2
+-- WAS WAS Full 2
+-- WAS NOW Empty
+-- NOW Full 2
 --
 -- >>> find (const True) infinity
--- Full 0
+-- WAS WAS Full 0
+-- WAS NOW Full 0
+-- NOW Full 0
 find ::
   (a -> Bool)
   -> List a
   -> Optional a
-find =
-  error "todo: Course.List#find"
-
+find f ls = foldRight (\h t -> if f h then Full h else t ) Empty ls
 -- | Determine if the length of the given list is greater than 4.
 --
 -- >>> lengthGT4 (1 :. 3 :. 5 :. Nil)
--- False
+-- WAS WAS WAS WAS False
+-- WAS WAS WAS NOW False
+-- WAS WAS NOW False
+-- WAS NOW False
+-- NOW False
 --
 -- >>> lengthGT4 Nil
--- False
+-- WAS WAS WAS WAS False
+-- WAS WAS WAS NOW False
+-- WAS WAS NOW False
+-- WAS NOW False
+-- NOW False
 --
 -- >>> lengthGT4 (1 :. 2 :. 3 :. 4 :. 5 :. Nil)
--- True
+-- WAS WAS WAS WAS True
+-- WAS WAS WAS NOW True
+-- WAS WAS NOW True
+-- WAS NOW True
+-- NOW True
 --
 -- >>> lengthGT4 infinity
--- True
+-- WAS WAS WAS WAS True
+-- WAS WAS WAS NOW ProgressCancelledException
+-- WAS WAS NOW ProgressCancelledException
+-- WAS NOW ProgressCancelledException
+-- NOW ProgressCancelledException
 lengthGT4 ::
   List a
   -> Bool
-lengthGT4 =
-  error "todo: Course.List#lengthGT4"
+lengthGT4 ls = if length ls > 4 then True else False
+  -- error "todo: Course.List#lengthGT4"
 
 -- | Reverse a list.
 --
 -- >>> reverse Nil
--- []
+-- WAS []
+-- NOW Ambiguous type variable ‘a0’ arising from a use of ‘evalPrint’
+-- NOW prevents the constraint ‘(Show a0)’ from being solved.
+-- NOW Probable fix: use a type annotation to specify what ‘a0’ should be.
+-- NOW These potential instances exist:
+-- NOW   instance Show a => Show (ZipList a)
+-- NOW     -- Defined in ‘Control.Applicative’
+-- NOW   instance Show NestedAtomically
+-- NOW     -- Defined in ‘Control.Exception.Base’
+-- NOW   instance Show NoMethodError -- Defined in ‘Control.Exception.Base’
+-- NOW   ...plus 215 others
+-- NOW   (use -fprint-potential-instances to see them all)
 --
 -- >>> take 1 (reverse (reverse largeList))
--- [1]
+-- WAS [1]
+-- NOW [1]
 --
 -- prop> \x -> let types = x :: List Int in reverse x ++ reverse y == reverse (y ++ x)
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x -> let types = x :: Int in reverse (x :. Nil) == x :. Nil
+-- Add QuickCheck to your cabal dependencies to run this test.
 reverse ::
   List a
   -> List a
-reverse =
-  error "todo: Course.List#reverse"
+reverse ls = foldLeft (\h t -> t :. h) Nil ls
 
 -- | Produce an infinite `List` that seeds with the given value at its head,
 -- then runs the given function for subsequent elements

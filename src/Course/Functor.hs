@@ -27,7 +27,12 @@ class Functor k where
 
 infixl 4 <$>
 
--- $setup
+-- map ::  (a -> b)   -> k a  -> k b
+-- mapOtional  :: ( a->b ) -> Optional a -> Optional b
+-- mapValidation  :: ( a->b ) -> Validation a -> Validation b
+
+
+-- setup
 -- >>> :set -XOverloadedStrings
 -- >>> import Course.Core
 -- >>> import qualified Prelude as P(return, (>>))
@@ -36,13 +41,15 @@ infixl 4 <$>
 --
 -- >>> (+1) <$> ExactlyOne 2
 -- ExactlyOne 3
+-- mapExactlyOne :: (a -> b) -> ExactlyOne a -> ExactlyOne b
+
 instance Functor ExactlyOne where
   (<$>) ::
     (a -> b)
     -> ExactlyOne a
     -> ExactlyOne b
-  (<$>) =
-    error "todo: Course.Functor (<$>)#instance ExactlyOne"
+  (<$>) = mapExactlyOne
+
 
 -- | Maps a function on the List functor.
 --
@@ -56,8 +63,8 @@ instance Functor List where
     (a -> b)
     -> List a
     -> List b
-  (<$>) =
-    error "todo: Course.Functor (<$>)#instance List"
+  (<$>) = map
+
 
 -- | Maps a function on the Optional functor.
 --
@@ -71,8 +78,8 @@ instance Functor Optional where
     (a -> b)
     -> Optional a
     -> Optional b
-  (<$>) =
-    error "todo: Course.Functor (<$>)#instance Optional"
+  (<$>) = mapOptional
+
 
 -- | Maps a function on the reader ((->) t) functor.
 --
@@ -81,10 +88,10 @@ instance Functor Optional where
 instance Functor ((->) t) where
   (<$>) ::
     (a -> b)
-    -> ((->) t a)
-    -> ((->) t b)
-  (<$>) =
-    error "todo: Course.Functor (<$>)#((->) t)"
+    -> (t -> a)
+    -> (t -> b)
+  (<$>) f g = f . g
+
 
 -- | Anonymous map. Maps a constant value on a functor.
 --
