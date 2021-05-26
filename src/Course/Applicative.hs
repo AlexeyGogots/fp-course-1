@@ -12,6 +12,12 @@ import Course.List
 import Course.Optional
 import qualified Prelude as P(fmap, return, (>>=))
 
+
+-- class Functor k where
+-- (<$>) ::   (a -> b) -> k a -> k b
+-- (<*>) :: k (a -> b) -> k a -> k b
+
+
 -- | All instances of the `Applicative` type-class must satisfy four laws.
 -- These laws are not checked by the compiler. These laws are given as:
 --
@@ -19,7 +25,7 @@ import qualified Prelude as P(fmap, return, (>>=))
 --   `∀x. pure id <*> x = x`
 --
 -- * The law of composition
---   `∀u v w. pure (.) <*> u <*> v <*> w = u <*> (v <*> w)`
+--   `∀u v w. (pure (.) <*> u <*> v) <*> w = u <*> (v <*> w)` f.(g.h) = (f.g).h
 --
 -- * The law of homomorphism
 --   `∀f x. pure f <*> pure x = pure (f x)`
@@ -48,62 +54,73 @@ instance Applicative ExactlyOne where
   pure ::
     a
     -> ExactlyOne a
-  pure =
-    error "todo: Course.Applicative pure#instance ExactlyOne"
+  pure = ExactlyOne
   (<*>) ::
     ExactlyOne (a -> b)
     -> ExactlyOne a
     -> ExactlyOne b
-  (<*>) =
-    error "todo: Course.Applicative (<*>)#instance ExactlyOne"
+  (<*>) (ExactlyOne f)  = (<$>) f 
 
 -- | Insert into a List.
 --
 -- prop> \x -> pure x == x :. Nil
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- >>> (+1) :. (*2) :. Nil <*> 1 :. 2 :. 3 :. Nil
--- [2,3,4,2,4,6]
+-- WAS [2,3,4,2,4,6]
+-- NOW [2,3,4,2,4,6]
 instance Applicative List where
   pure ::
     a
     -> List a
-  pure =
-    error "todo: Course.Applicative pure#instance List"
+  pure a = a :. Nil
   (<*>) ::
     List (a -> b)
     -> List a
     -> List b
-  (<*>) =
-    error "todo: Course.Apply (<*>)#instance List"
+  (<*>) fs as = foldRight (\f t -> (f <$> as) ++ t) Nil fs
 
 -- | Insert into an Optional.
 --
 -- prop> \x -> pure x == Full x
+-- Add QuickCheck to your cabal dependencies to run this test.
 --
 -- >>> Full (+8) <*> Full 7
--- Full 15
+-- WAS Full 15
+-- NOW Full 15
 --
 -- >>> Empty <*> Full 7
--- Empty
+-- WAS Empty
+-- NOW Ambiguous type variable ‘b0’ arising from a use of ‘evalPrint’
+-- NOW prevents the constraint ‘(Show b0)’ from being solved.
+-- NOW Probable fix: use a type annotation to specify what ‘b0’ should be.
+-- NOW These potential instances exist:
+-- NOW   instance Show a => Show (ZipList a)
+-- NOW     -- Defined in ‘Control.Applicative’
+-- NOW   instance Show NestedAtomically
+-- NOW     -- Defined in ‘Control.Exception.Base’
+-- NOW   instance Show NoMethodError -- Defined in ‘Control.Exception.Base’
+-- NOW   ...plus 216 others
+-- NOW   (use -fprint-potential-instances to see them all)
 --
 -- >>> Full (+8) <*> Empty
--- Empty
+-- WAS Empty
+-- NOW Empty
 instance Applicative Optional where
   pure ::
     a
     -> Optional a
-  pure =
-    error "todo: Course.Applicative pure#instance Optional"
+  pure = Full
   (<*>) ::
-    Optional (a -> b)
+    Optional (a -> b) -- k (a -> b)
     -> Optional a
     -> Optional b
-  (<*>) =
-    error "todo: Course.Apply (<*>)#instance Optional"
+  (<*>) (Full f) a  = f <$> a 
+  (<*>) Empty _ = Empty
 
 -- | Insert into a constant function.
 --
--- >>> ((+) <*> (+10)) 3
+-- >>> ((+) <*> (+10)) 3 -- k (a -> b) <*> k a
 -- 16
 --
 -- >>> ((+) <*> (+5)) 3
@@ -118,19 +135,20 @@ instance Applicative Optional where
 -- >>> ((*) <*> (+2)) 3
 -- 15
 --
+--- ExactlyOne a = ExactlyOne a
+-- (\ t -> a) = 
+
 -- prop> \x y -> pure x y == x
 instance Applicative ((->) t) where
   pure ::
-    a
-    -> ((->) t a)
-  pure =
-    error "todo: Course.Applicative pure#((->) t)"
+    a -> ((->) t a)
+  pure a = (\_ -> a)
+    
   (<*>) ::
-    ((->) t (a -> b))
-    -> ((->) t a)
-    -> ((->) t b)
-  (<*>) =
-    error "todo: Course.Apply (<*>)#instance ((->) t)"
+    (t -> (a -> b))
+    -> (t -> a)
+    -> (t -> b)
+  (<*>) tf ta = (\t -> (tf t) <$> ta)
 
 
 -- | Apply a binary function in the environment.

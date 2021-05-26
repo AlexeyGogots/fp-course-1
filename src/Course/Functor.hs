@@ -102,12 +102,9 @@ instance Functor ((->) t) where
 --
 -- prop> \x q -> x <$ Full q == Full x
 (<$) ::
-  Functor k =>
-  a
-  -> k b
-  -> k a
-(<$) =
-  error "todo: Course.Functor#(<$)"
+  Functor k =>  a  -> k b  -> k a
+(<$) a kb = const a <$> kb
+
 
 -- | Anonymous map producing unit value.
 --
@@ -126,8 +123,8 @@ void ::
   Functor k =>
   k a
   -> k ()
-void =
-  error "todo: Course.Functor#void"
+void = (<$) ()
+  
 
 -----------------------
 -- SUPPORT LIBRARIES --
