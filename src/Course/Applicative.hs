@@ -25,7 +25,7 @@ import qualified Prelude as P(fmap, return, (>>=))
 --   `∀x. pure id <*> x = x`
 --
 -- * The law of composition
---   `∀u v w. (pure (.) <*> u <*> v) <*> w = u <*> (v <*> w)` f.(g.h) = (f.g).h
+--   `∀u v w. pure (.) <*> u <*> v <*> w = u <*> (v <*> w)` 
 --
 -- * The law of homomorphism
 --   `∀f x. pure f <*> pure x = pure (f x)`
@@ -147,61 +147,85 @@ instance Applicative ((->) t) where
   (<*>) ::
     (t -> (a -> b))
     -> (t -> a)
-    -> (t -> b)
-  (<*>) tf ta = (\t -> (tf t) <$> ta)
+    -> t -> b
+  (<*>) tf ta t = tf t (ta t)
 
 
 -- | Apply a binary function in the environment.
 --
 -- >>> lift2 (+) (ExactlyOne 7) (ExactlyOne 8)
--- ExactlyOne 15
+-- WAS WAS WAS ExactlyOne 15
+-- WAS WAS NOW ExactlyOne 15
+-- WAS NOW ExactlyOne 15
+-- NOW ExactlyOne 15
 --
 -- >>> lift2 (+) (1 :. 2 :. 3 :. Nil) (4 :. 5 :. Nil)
--- [5,6,6,7,7,8]
+-- WAS WAS WAS [5,6,6,7,7,8]
+-- WAS WAS NOW [5,6,6,7,7,8]
+-- WAS NOW [5,6,6,7,7,8]
+-- NOW [5,6,6,7,7,8]
 --
 -- >>> lift2 (+) (Full 7) (Full 8)
--- Full 15
+-- WAS WAS WAS Full 15
+-- WAS WAS NOW Full 15
+-- WAS NOW Full 15
+-- NOW Full 15
 --
 -- >>> lift2 (+) (Full 7) Empty
--- Empty
+-- WAS WAS WAS Empty
+-- WAS WAS NOW Empty
+-- WAS NOW Empty
+-- NOW Empty
 --
 -- >>> lift2 (+) Empty (Full 8)
--- Empty
+-- WAS WAS WAS Empty
+-- WAS WAS NOW Empty
+-- WAS NOW Empty
+-- NOW Empty
 --
 -- >>> lift2 (+) length sum (listh [4,5,6])
--- 18
+-- WAS WAS WAS 18
+-- WAS WAS NOW 18
+-- WAS NOW 18
+-- NOW 18
 lift2 ::
   Applicative k =>
-  (a -> b -> c)
+    (a -> b -> c)
   -> k a
   -> k b
   -> k c
-lift2 =
-  error "todo: Course.Applicative#lift2"
+lift2 f ka kb =  f <$> ka <*> kb
 
 -- | Apply a ternary function in the environment.
 -- /can be written using `lift2` and `(<*>)`./
 --
 -- >>> lift3 (\a b c -> a + b + c) (ExactlyOne 7) (ExactlyOne 8) (ExactlyOne 9)
--- ExactlyOne 24
+-- WAS ExactlyOne 24
+-- NOW ExactlyOne 24
 --
 -- >>> lift3 (\a b c -> a + b + c) (1 :. 2 :. 3 :. Nil) (4 :. 5 :. Nil) (6 :. 7 :. 8 :. Nil)
--- [11,12,13,12,13,14,12,13,14,13,14,15,13,14,15,14,15,16]
+-- WAS [11,12,13,12,13,14,12,13,14,13,14,15,13,14,15,14,15,16]
+-- NOW [11,12,13,12,13,14,12,13,14,13,14,15,13,14,15,14,15,16]
 --
 -- >>> lift3 (\a b c -> a + b + c) (Full 7) (Full 8) (Full 9)
--- Full 24
+-- WAS Full 24
+-- NOW Full 24
 --
 -- >>> lift3 (\a b c -> a + b + c) (Full 7) (Full 8) Empty
--- Empty
+-- WAS Empty
+-- NOW Empty
 --
 -- >>> lift3 (\a b c -> a + b + c) Empty (Full 8) (Full 9)
--- Empty
+-- WAS Empty
+-- NOW Empty
 --
 -- >>> lift3 (\a b c -> a + b + c) Empty Empty (Full 9)
--- Empty
+-- WAS Empty
+-- NOW Empty
 --
 -- >>> lift3 (\a b c -> a + b + c) length sum product (listh [4,5,6])
--- 138
+-- WAS 138
+-- NOW 138
 lift3 ::
   Applicative k =>
   (a -> b -> c -> d)
@@ -209,8 +233,8 @@ lift3 ::
   -> k b
   -> k c
   -> k d
-lift3 =
-  error "todo: Course.Applicative#lift3"
+lift3 f ka kb kc =  f <$> ka <*> kb <*> kc
+  
 
 -- | Apply a quaternary function in the environment.
 -- /can be written using `lift3` and `(<*>)`./
@@ -243,16 +267,14 @@ lift4 ::
   -> k c
   -> k d
   -> k e
-lift4 =
-  error "todo: Course.Applicative#lift4"
+lift4 f ka kb kc kd = f <$> ka <*> kb <*> kc <*> kd
 
 -- | Apply a nullary function in the environment.
 lift0 ::
   Applicative k =>
   a
   -> k a
-lift0 =
-  error "todo: Course.Applicative#lift0"
+lift0 = pure
 
 -- | Apply a unary function in the environment.
 -- /can be written using `lift0` and `(<*>)`./
@@ -270,34 +292,47 @@ lift1 ::
   (a -> b)
   -> k a
   -> k b
-lift1 =
-  error "todo: Course.Applicative#lift1"
+lift1 = (<$>)
+-- lift1 f ka = f <$> ka
+  
 
 -- | Apply, discarding the value of the first argument.
 -- Pronounced, right apply.
 --
 -- >>> (1 :. 2 :. 3 :. Nil) *> (4 :. 5 :. 6 :. Nil)
--- [4,5,6,4,5,6,4,5,6]
+-- WAS WAS [4,5,6,4,5,6,4,5,6]
+-- WAS NOW [4,5,6,4,5,6,4,5,6]
+-- NOW [4,5,6,4,5,6,4,5,6]
 --
 -- >>> (1 :. 2 :. Nil) *> (4 :. 5 :. 6 :. Nil)
--- [4,5,6,4,5,6]
+-- WAS WAS [4,5,6,4,5,6]
+-- WAS NOW [4,5,6,4,5,6]
+-- NOW [4,5,6,4,5,6]
 --
 -- >>> (1 :. 2 :. 3 :. Nil) *> (4 :. 5 :. Nil)
--- [4,5,4,5,4,5]
+-- WAS WAS [4,5,4,5,4,5]
+-- WAS NOW [4,5,4,5,4,5]
+-- NOW [4,5,4,5,4,5]
 --
 -- >>> Full 7 *> Full 8
--- Full 8
+-- WAS WAS Full 8
+-- WAS NOW Full 8
+-- NOW Full 8
 --
 -- prop> \a b c x y z -> (a :. b :. c :. Nil) *> (x :. y :. z :. Nil) == (x :. y :. z :. x :. y :. z :. x :. y :. z :. Nil)
+-- WAS Add QuickCheck to your cabal dependencies to run this test.
+-- NOW Add QuickCheck to your cabal dependencies to run this test.
 --
 -- prop> \x y -> Full x *> Full y == Full y
+-- WAS Add QuickCheck to your cabal dependencies to run this test.
+-- NOW Add QuickCheck to your cabal dependencies to run this test.
 (*>) ::
   Applicative k =>
   k a
   -> k b
   -> k b
-(*>) =
-  error "todo: Course.Applicative#(*>)"
+(*>) = lift2 (flip const)
+-- (*>) ka kb = const id <$> ka <*> kb
 
 -- | Apply, discarding the value of the second argument.
 -- Pronounced, left apply.
@@ -322,8 +357,8 @@ lift1 =
   k b
   -> k a
   -> k b
-(<*) =
-  error "todo: Course.Applicative#(<*)"
+-- (<*) = lift2 const
+(<*) ka kb = const <$> ka <*> kb
 
 -- | Sequences a list of structures to a structure of list.
 --
@@ -345,8 +380,11 @@ sequence ::
   Applicative k =>
   List (k a)
   -> k (List a)
-sequence =
-  error "todo: Course.Applicative#sequence"
+sequence = foldRight (lift2 (:.)) (pure Nil)
+
+-- (ka -> k (List a))
+-- k (a -> List a -> List a)
+
 
 -- | Replicate an effect a given number of times.
 --
